@@ -1,0 +1,25 @@
+#import necessary library 
+import pandas as pd
+
+from ydata_profiling import ProfileReport
+
+#import the dataset
+flight_df = pd.read_csv('Tunisair_flights_dataset.csv')
+
+#explore the data
+flight_df.head()
+
+#display information about the dataset
+flight_df.info()
+
+#check for missing data
+flight_df.isnull()
+
+#descriptive analysis on the dataset
+flight_df.describe()
+
+#ydata-profiling to generate a report of the provided dataset
+flight_report = ProfileReport(flight_df, title = 'Flight Delay Report: A casestudy of TuniAir')
+
+#display the report
+flight_report.to_notebook_iframe()
