@@ -1,0 +1,24 @@
+#Import Necessary Libraries
+import pandas as pd
+
+#Import the dataset
+dataset = pd.read_csv('EDUCATION_ATTAINMENT.csv')
+
+#Display general information about the dataset
+dataset.info()
+
+#Descriptive analysis on the dataset using the 'describe' function
+dataset.describe()
+
+#Data exploration with ydata-profiling
+from ydata_profiling import ProfileReport
+
+# Generate the profile report
+edu_report = ProfileReport(dataset, title = 'Education Attainment And Enrolment Around The World')
+
+# Display the report
+edu_report.to_notebook_iframe()
+
+# Or generate an HTML report
+edu_report.to_file("edu_attainment.html")
+
