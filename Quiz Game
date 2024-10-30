@@ -1,0 +1,181 @@
+#Import necessary libraries
+
+import random
+import time
+import json
+import os
+import tkinter as tk
+from tkinter import messagebox
+
+# File to store high scores
+high_scores_file = "high_scores.json"
+
+# List of questions with options and correct answers
+quiz_questions = [
+    {
+        "question": "What is the capital of Nigeria?",
+        "options": ["1. FCT-Abuja", "2. London", "3. Berlin", "4. Madrid"],
+        "answer": 1
+    },
+    {
+        "question": "Which planet is known as the Red Planet?",
+        "options": ["1. Earth", "2. Mars", "3. Jupiter", "4. Saturn"],
+        "answer": 2
+    },
+    {
+        "question": "What is the largest ocean on Earth?",
+        "options": ["1. Atlantic", "2. Pacific", "3. Indian", "4. Arctic"],
+        "answer": 2
+    },
+    {
+        "question": "Who wrote 'Romeo and Juliet'?",
+        "options": ["1. William Shakespeare", "2. Charles Dickens", "3. Mark Twain", "4. J.K. Rowling"],
+        "answer": 1
+    },
+    {
+        "question": "Which element has the chemical symbol 'O'?",
+        "options": ["1. Oxygen", "2. Gold", "3. Osmium", "4. Zinc"],
+        "answer": 1
+    }
+]
+
+# Function to load high scores from file
+def load_high_scores():
+    if os.path.exists(high_scores_file):
+        with open(high_scores_file, "r") as file:
+            return json.load(file)
+    return []
+
+# Function to save high scores to file
+def save_high_score(name, score):
+    high_scores = load_high_scores()
+    high_scores.append({"name": name, "score": score})
+    high_scores = sorted(high_scores, key=lambda x: x['score'], reverse=True)[:5]  # Keep top 5 scores
+    with open(high_scores_file, "w") as file:
+        json.dump(high_scores, file)
+
+# Function to start the quiz
+def start_quiz():
+    random.shuffle(quiz_questions)  # Shuffle the order of questions
+    score = 0
+    time_limit = 10  # Time limit in seconds for each question
+
+    for idx, question in enumerate(quiz_questions, start=1):
+        print(f"\nQuestion {idx}: {question['question']}")
+        for option in question["options"]:
+            print(option)
+
+        start_time = time.time()  # Track time when question is shown
+        try:
+            user_answer = input_with_timeout(f"Enter the number of your answer (1-4): ", time_limit)
+        except TimeoutError:
+            print("Time's up! Moving to the next question.")
+            continue
+
+        if user_answer.isdigit() and int(user_answer) == question['answer']:
+            print("Correct!\n")
+            score += 1
+        else:
+            print(f"Wrong! The correct answer was {question['answer']}\n")
+
+    print(f"\nQuiz finished! Your final score is {score} out of {len(quiz_questions)}.")
+    player_name = input("Enter your name for the high score list: ")
+    save_high_score(player_name, score)
+    display_high_scores()
+
+# Function to input with a time limit (for the timer feature)
+def input_with_timeout(prompt, timeout):
+    print(f"{prompt} (You have {timeout} seconds)")
+    start_time = time.time()
+    user_input = input()  # Get input from user
+    elapsed_time = time.time() - start_time
+    if elapsed_time > timeout:
+        raise TimeoutError
+    return user_input
+
+# Function to display high scores
+def display_high_scores():
+    print("\n---- High Scores ----")
+    high_scores = load_high_scores()
+    for idx, entry in enumerate(high_scores, start=1):
+        print(f"{idx}. {entry['name']} - {entry['score']}")
+    print("---------------------")
+
+# Function to create a tkinter GUI for the quiz
+def gui_quiz():
+    root = tk.Tk()
+    root.title("Python Quiz Game")
+
+    # Declare the variables in an outer scope
+    score = 0
+    current_question = 0
+    start_time = 0
+
+    def start_gui_quiz():
+        nonlocal score, current_question, start_time
+        random.shuffle(quiz_questions)
+        score = 0
+        current_question = 0
+        show_next_question()
+
+    def show_next_question():
+        nonlocal current_question, start_time
+        if current_question < len(quiz_questions):
+            question_label.config(text=quiz_questions[current_question]['question'])
+            for i, option in enumerate(quiz_questions[current_question]['options']):
+                option_buttons[i].config(text=option, state=tk.NORMAL)
+            start_time = time.time()  # Record the start time for the question
+        else:
+            finish_quiz()
+
+    def handle_answer(selected_option):
+        nonlocal score, current_question
+        elapsed_time = time.time() - start_time
+        correct_answer = quiz_questions[current_question]['answer']
+        if selected_option == correct_answer and elapsed_time <= 10:  # Within time limit
+            score += 1
+        current_question += 1
+        show_next_question()
+
+    def finish_quiz():
+        for button in option_buttons:
+            button.config(state=tk.DISABLED)
+        question_label.config(text=f"Quiz finished! Your final score is {score}.")
+        name = name_entry.get()
+        save_high_score(name, score)
+        display_high_scores_gui()
+
+    def display_high_scores_gui():
+        high_scores = load_high_scores()
+        scores_text = "\n".join([f"{idx+1}. {entry['name']} - {entry['score']}" for idx, entry in enumerate(high_scores)])
+        messagebox.showinfo("High Scores", scores_text)
+
+    # GUI Layout
+    question_label = tk.Label(root, text="", wraplength=400)
+    question_label.pack(pady=20)
+
+    option_buttons = []
+    for i in range(4):
+        button = tk.Button(root, text="", width=30, command=lambda i=i: handle_answer(i + 1))
+        button.pack(pady=5)
+        option_buttons.append(button)
+
+    name_entry = tk.Entry(root)
+    name_entry.pack(pady=10)
+    name_entry.insert(0, "Enter your name")
+
+    start_button = tk.Button(root, text="Start Quiz", command=start_gui_quiz)
+    start_button.pack(pady=10)
+
+    root.mainloop()
+
+# Choose between GUI or text-based quiz
+if __name__ == "__main__":
+    print("Welcome to the Python Quiz Game!")
+    mode = input("Choose mode: 1 for Text-based quiz, 2 for GUI (tkinter): ")
+    if mode == "1":
+        start_quiz()
+    elif mode == "2":
+        gui_quiz()
+    else:
+        print("Invalid choice. Please restart and choose 1 or 2.")
